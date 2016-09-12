@@ -1,9 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="mylibs">
-    <output-path>$PROJECT_DIR$/out/artifacts/mylibs</output-path>
-    <root id="archive" name="mylibs.jar">
-      <element id="library" level="project" name="hbaselib" />
-      <element id="library" level="project" name="sparklib" />
-    </root>
-  </artifact>
-</component>
