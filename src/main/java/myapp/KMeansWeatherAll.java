@@ -1,11 +1,7 @@
 package main.java.myapp;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
-
 import com.twitter.chill.Base64;
+import main.java.myTools.CleanData;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Result;
@@ -19,21 +15,25 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-
-import org.apache.spark.api.java.function.PairFlatMapFunction;
-import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.mllib.clustering.KMeans;
 import org.apache.spark.mllib.clustering.KMeansModel;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
+import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+
 /**
  * Example using MLlib KMeans from Java.
  */
-public final class KMeansWeather {
+public final class KMeansWeatherAll {
 
     private static class ParsePoint implements Function<String, Vector> {
         private static final Pattern SPACE = Pattern.compile(" ");
@@ -49,9 +49,9 @@ public final class KMeansWeather {
         }
     }
     public static void getValueFromHB() throws IOException {
-        final Logger logger = LoggerFactory.getLogger(KMeansWeather.class);
-        String f = "BaseInfo";
-        String table = "NewCityWeather";
+        final Logger logger = LoggerFactory.getLogger(KMeansWeatherAll.class);
+        String f = "cf";
+        String table = "CityWeather";
         Scan scan = new Scan();
         scan.addFamily(Bytes.toBytes(f));
         //scan.addColumn(Bytes.toBytes(f),Bytes.toBytes("temp"));
@@ -64,7 +64,7 @@ public final class KMeansWeather {
         //SparkConf confsp=new SparkConf().setAppName("SparkHBaseTest").setMaster("yarn-client");
         //SparkConf confsp=new SparkConf().setAppName("SparkHBaseTest").setMaster("spark://10.3.9.135:7077");
         //设置应用名称，就是在spark web端显示的应用名称，当然还可以设置其它的，在提交的时候可以指定，所以不用set上面两行吧
-        SparkConf confsp = new SparkConf().setAppName("SparkHBaseTest");
+        SparkConf confsp = new SparkConf().setAppName("SparkCityWeatherKMeans");
         //.setMaster("local")//以本地的形式运行
         //.setJars(new String[]{"D:\\jiuzhouwork\\workspace\\hbase_handles\\out\\artifacts\\hbase_handles_jar\\hbase_handles.jar"});
         //创建spark操作环境对象
@@ -140,16 +140,55 @@ public final class KMeansWeather {
             //tuple._1();
             System.out.println(ve.toArray().toString());
         }*/
+        System.out.println("wwwwwwww:"+myRDD.count());
         /**生成rdd*/
-        JavaRDD<Vector> cityWeatherInfo = myRDD.map(new Function<Tuple2<ImmutableBytesWritable, Result>, Vector>() {
+        JavaRDD<Vector> cityWeatherInfo1 = myRDD.map(new Function<Tuple2<ImmutableBytesWritable, Result>, Vector>() {
             @Override
             public Vector call(Tuple2<ImmutableBytesWritable, Result> immutableBytesWritableResultTuple2) throws Exception {
                 double[] info = new double[5];
                 byte[] v;
+                String s;
                 v = immutableBytesWritableResultTuple2._2().getValue(
-                        Bytes.toBytes("BaseInfo"), Bytes.toBytes("temp"));
-                info[0] = Double.parseDouble(Bytes.toString(v));
-                v = immutableBytesWritableResultTuple2._2().getValue(
+                        Bytes.toBytes(f), Bytes.toBytes("Info"));
+                //JSONObject dataJson=new JSONObject(Bytes.toString(v));
+                JSONObject weatherJson=new JSONObject((new JSONObject(Bytes.toString(v)) ).get("weatherinfo").toString());
+
+                s=weatherJson.get("temp").toString();
+                if(s!=null && !s.isEmpty() && s.matches("^[0-9].*"))
+                {info[0] = Double.parseDouble(s);}else{return null;}
+
+                s=weatherJson.get("wd").toString();
+                if(s!=null && !s.isEmpty() && !"null".equals(s) && !"?".equals(s))
+                {info[1] = (double) CleanData.directionToNum(s);}else{return null;}
+
+                s=weatherJson.get("wse").toString();
+                if(s!=null && !s.isEmpty() && s.matches("^[0-9].*"))
+                {info[2] = Double.parseDouble(s);}else{return null;}
+
+                s=weatherJson.get("pm").toString();
+                //logger.info("lllll:"+s);
+                //System.out.println("lllll:"+s);
+                if(s!=null && !s.isEmpty() && s.matches("^[0-9].*"))
+                {info[3] = Double.parseDouble(s);}else{return null;}
+
+                s=weatherJson.get("sd").toString();
+                if(s!=null && !s.isEmpty() && s.matches("^[0-9].*"))
+                {info[4] = Double.parseDouble(CleanData.sdToNumStr(s));}else{return null;}
+                /*System.out.println("temp:"+weatherJson.get("temp").toString());
+                System.out.println("wd:"+weatherJson.get("wd").toString());
+                System.out.println("wse:"+weatherJson.get("wse").toString());
+                System.out.println("pm:"+weatherJson.get("pm").toString());
+                System.out.println("sd:"+CleanData.sdToNumStr(weatherJson.get("sd").toString()));*/
+
+
+
+                /*info[0] = Double.parseDouble(weatherJson.get("temp").toString());
+                info[1] = (double) CleanData.directionToNum(weatherJson.get("wd").toString());
+                info[2] = Double.parseDouble(weatherJson.get("wse").toString());
+                info[3] = Double.parseDouble(weatherJson.get("pm").toString());
+                info[4] = Double.parseDouble(CleanData.sdToNumStr(weatherJson.get("sd").toString()));*/
+
+                /*v = immutableBytesWritableResultTuple2._2().getValue(
                         Bytes.toBytes("BaseInfo"), Bytes.toBytes("wd"));
                 info[1] = Double.parseDouble(Bytes.toString(v));
                 v = immutableBytesWritableResultTuple2._2().getValue(
@@ -160,13 +199,20 @@ public final class KMeansWeather {
                 info[3] = Double.parseDouble(Bytes.toString(v));
                 v = immutableBytesWritableResultTuple2._2().getValue(
                         Bytes.toBytes("BaseInfo"), Bytes.toBytes("sd"));
-                info[4] = Double.parseDouble(Bytes.toString(v));
+                info[4] = Double.parseDouble(Bytes.toString(v));*/
 
                 return Vectors.dense(info);
 
 
             }
         });
+        JavaRDD<Vector> cityWeatherInfo=cityWeatherInfo1.filter(new Function<Vector, Boolean>() {
+            @Override
+            public Boolean call(Vector vector) throws Exception {
+                return vector!=null;
+            }
+        });
+
         List<Vector> output = cityWeatherInfo.collect();
         for (Vector ve : output) {
             //tuple._1();
@@ -175,8 +221,8 @@ public final class KMeansWeather {
             else{
                 System.out.println("the null");
             }
-
         }
+
 
         //聚类算法kmeans
         KMeansModel model = KMeans.train(cityWeatherInfo.rdd(), 3, 10, 1, KMeans.K_MEANS_PARALLEL());
