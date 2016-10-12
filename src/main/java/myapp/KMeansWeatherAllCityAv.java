@@ -57,7 +57,7 @@ public final class KMeansWeatherAllCityAv {
         String table = "CityWeather";
         Scan scan = new Scan();
         scan.addFamily(Bytes.toBytes(f));
-        scan.setMaxVersions(24);//怎么感觉设没没都是scan那么多呢43238。
+        scan.setMaxVersions();//怎么感觉设没没都是scan那么多呢43238。因为row的个数，
         //scan.addColumn(Bytes.toBytes(f),Bytes.toBytes("temp"));
         //Filter filter=new SingleColumnValueFilter(Bytes.toBytes(f),Bytes.toBytes("Info"), CompareFilter.CompareOp.NOT_EQUAL,Bytes.toBytes("null"));
         //scan.setFilter();

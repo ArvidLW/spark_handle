@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
-Main-Class: main.java.myapp.KMeansWeatherAll
+Class-Path: spark_hbase_fat.jar
+Main-Class: main.java.myapp.KMeansWeatherAllCityAv
 

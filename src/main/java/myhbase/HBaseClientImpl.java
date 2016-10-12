@@ -157,6 +157,19 @@ public class HBaseClientImpl {
             e.printStackTrace();
         }
     }
+    public void addRecordwithTs(String tableName, String rowKey, String family, String qualifier, long ts,String value)
+    {
+        try {
+            Connection connection = ConnectionFactory.createConnection(config);
+            table = connection.getTable(TableName.valueOf(tableName));
+            Put put = new Put(Bytes.toBytes(rowKey));
+            put.addColumn(Bytes.toBytes(family),Bytes.toBytes(qualifier),ts,Bytes.toBytes(value));
+            table.put(put);
+            System.out.println("insert recored " + rowKey + " to table " + tableName +" ok.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     public void addRecords (String tableName, String rowKey, String family, String qualifier[], String value[])
             throws Exception{
         try {
